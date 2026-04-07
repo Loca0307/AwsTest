@@ -15,14 +15,28 @@ jobs:
     steps:
       - name: Prepare SSH key and known_hosts
         run: |
+          set -euo pipefail
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY_B64 }}" | base64 -d > ~/.ssh/ec2_key
+          echo "${{ secrets.EC2_SSH_KEY_B64 }}" | tr -d '\r' | base64 -d > ~/.ssh/ec2_key
           chmod 600 ~/.ssh/ec2_key
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
+      - name: Test SSH connectivity
+        run: |
+          ssh -i ~/.ssh/ec2_key \
+            -o BatchMode=yes \
+            -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" \
+            "echo Connected to \\$(hostname) as \\$(whoami)"
+
       - name: Pull and restart container on EC2
         run: |
-          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << 'EOF'
+          ssh -i ~/.ssh/ec2_key \
+            -o BatchMode=yes \
+            -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=yes \
+            "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << 'EOF'
             set -e
             IMAGE="${{ secrets.DOCKERHUB_IMAGE }}:latest"
 
