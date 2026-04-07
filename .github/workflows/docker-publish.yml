@@ -34,8 +34,8 @@ jobs: # Actions to take
           context: . # Directory to build into docker image
           file: ./Dockerfile # Which dockerfile to use for the build
           push: true # To only build or also push the image to docker hub
-          tags: |
-            ${{ secrets.DOCKERHUB_IMAGE }}:latest # Tag for the latest version of the image
-            ${{ secrets.DOCKERHUB_IMAGE }}:${{ github.sha }} # Tag for the image with a specific version to track
+          tags: | # Tag for the latest version of the image, and a tag with a specific version to track
+            ${{ secrets.DOCKERHUB_IMAGE }}:latest 
+            ${{ secrets.DOCKERHUB_IMAGE }}:${{ github.sha }} 
           cache-from: type=gha # Take cache of unchanged layers from previous builds
           cache-to: type=gha,mode=max # Uploads the current build as cache for the future (max means to cache as many layers as possible)
