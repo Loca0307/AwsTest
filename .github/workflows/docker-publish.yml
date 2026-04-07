@@ -1,37 +1,41 @@
 name: Build and Push Docker Image
 
-on:
-  push:
+on: # Defines trigger
+  push: # Action that triggers the workflow
     branches:
       - main
 
-jobs:
+jobs: # Actions to take
   docker:
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
-    steps:
+    # Up to here define meta data of the jobs
+    steps: # Steps to execute
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 # This github action downloads the repository 
+                                  # into the runner to be accessed by later steps
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3 # This docker action sets up the buildx tool, 
+                                            # which is then used to build and push docker images
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
+      - name: Log in to Docker Hub  # Name of the step
+        uses: docker/login-action@v3  # Docker action to log in to docker hub
+        with:                       # Input data necessary for the step
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v6 # This docker dependency uses the buildx tool 
+                                          # to build and push the docker image
         with:
-          context: .
-          file: ./Dockerfile
-          push: true
+          context: . # Directory to build into docker image
+          file: ./Dockerfile # Which dockerfile to use for the build
+          push: true # To only build or also push the image to docker hub
           tags: |
-            ${{ secrets.DOCKERHUB_IMAGE }}:latest
-            ${{ secrets.DOCKERHUB_IMAGE }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            ${{ secrets.DOCKERHUB_IMAGE }}:latest # Tag for the latest version of the image
+            ${{ secrets.DOCKERHUB_IMAGE }}:${{ github.sha }} # Tag for the image with a specific version to track
+          cache-from: type=gha # Take cache of unchanged layers from previous builds
+          cache-to: type=gha,mode=max # Uploads the current build as cache for the future (max means to cache as many layers as possible)

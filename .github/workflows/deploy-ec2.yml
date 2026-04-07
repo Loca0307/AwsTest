@@ -1,0 +1,41 @@
+name: Deploy to EC2
+
+on: # As trigger I need that when the docker-image workflow has finished 
+  workflow_run:
+    workflows: ["Build and Push Docker Image"]
+    types: [completed]
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Configure SSH key 
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Add EC2 host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Pull and restart container on EC2
+        run: |
+          ssh "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << 'EOF'
+            set -e
+            IMAGE="${{ secrets.DOCKERHUB_IMAGE }}:latest"
+
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            docker pull "$IMAGE"
+
+            docker rm -f awstest-backend || true
+            docker run -d \
+              --name awstest-backend \
+              --restart unless-stopped \
+              -p 8080:8080 \
+              "$IMAGE"
+          EOF
