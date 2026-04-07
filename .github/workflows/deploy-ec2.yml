@@ -17,8 +17,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY_B64 }}" | tr -d '\r' | base64 -d > ~/.ssh/ec2_key
+          if [ -n "${{ secrets.EC2_SSH_KEY }}" ]; then
+            printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
+          else
+            printf '%s' "${{ secrets.EC2_SSH_KEY_B64 }}" | tr -d '\r\n ' | base64 -d > ~/.ssh/ec2_key
+          fi
           chmod 600 ~/.ssh/ec2_key
+          ssh-keygen -yf ~/.ssh/ec2_key > /dev/null
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Test SSH connectivity
